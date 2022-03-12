@@ -5,8 +5,6 @@ from django.db import models
 from django.db.models import Count
 from django.urls import reverse
 
-# Колдуй тут↓↓
-
 
 class TagQuerySet(models.QuerySet):
     def fetch_with_posts(self):
@@ -48,6 +46,9 @@ class PostQuerySet(models.QuerySet):
         for post in self:
             post.comments_amount = count_for_id[post.id]
         return self
+
+    def prefetch_tags(self):
+        return self.prefetch_related(Prefetch('tags'))
 
 
 class Post(models.Model):
