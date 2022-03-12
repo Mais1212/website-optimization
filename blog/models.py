@@ -1,7 +1,32 @@
 from django.contrib.auth.models import User
+from django.db.models import Prefetch
+
 from django.db import models
 from django.db.models import Count
 from django.urls import reverse
+
+# Колдуй тут↓↓
+
+
+class TagQuerySet(models.QuerySet):
+    def fetch_with_posts(self):
+        tag_ids = [tag.id for tag in self]
+        tags_with_posts = Tag.objects\
+            .filter(id__in=tag_ids)\
+            .annotate(posts_amount=Count('posts'))
+
+        ids_and_posts = tags_with_posts.values_list(
+            'id', 'posts_amount')
+        count_for_id = dict(ids_and_posts)
+        for tag in self:
+            tag.posts_amount = count_for_id[tag.id]
+        return self
+
+    def popular(self):
+        tags = self\
+            .annotate(posts_amount=Count('posts'))\
+            .order_by('-posts_amount')
+        return tags
 
 
 class PostQuerySet(models.QuerySet):
@@ -62,6 +87,8 @@ class Post(models.Model):
 
 
 class Tag(models.Model):
+    objects = TagQuerySet.as_manager()
+
     title = models.CharField('Тег', max_length=20, unique=True)
 
     def __str__(self):
